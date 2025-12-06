@@ -40,6 +40,7 @@ class module_forum(GDO_Module):
         return [
             GDT_Image('default_board_image'),
             GDT_UInt('forum_ppp').min(1).max(500),
+            GDT_UInt('num_latest').min(1).max(500).initial('10'),
         ]
 
     def cfg_posts_per_page(self) -> int:
