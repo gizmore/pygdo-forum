@@ -1,0 +1,16 @@
+module_forum = "Forum"
+
+link_forum = "%d Posts"
+
+btn_add_board = "Add Board"
+btn_add_thread = "Add Thread"
+
+mt_forum_boards = "Forum Boards"
+md_forum_boards = "List forum boards for a parent board."
+
+mt_forum_addboard = "Add Board"
+md_forum_addboard = "Add a sub-board to a forum board."
+parent_board = "Parent Board"
+
+mt_forum_addthread = "Add Thread"
+md_forum_addthread = "Add a thread to a forum board."
