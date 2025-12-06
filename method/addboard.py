@@ -1,6 +1,7 @@
 from gdo.base.GDT import GDT
 from gdo.base.util.href import href
 from gdo.core.GDO_File import GDO_File
+from gdo.core.GDO_Permission import GDO_Permission
 from gdo.core.GDT_Permission import GDT_Permission
 from gdo.form.GDT_Form import GDT_Form
 from gdo.form.MethodForm import MethodForm
@@ -12,6 +13,12 @@ from gdo.ui.GDT_Title import GDT_Title
 
 
 class addboard(MethodForm):
+
+    def gdo_user_type(self) -> str | None:
+        return "member,guest"
+
+    def gdo_user_permission(self) -> str | None:
+        return GDO_Permission.STAFF
 
     def gdo_parameters(self) -> list[GDT]:
         return [

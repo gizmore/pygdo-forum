@@ -17,12 +17,12 @@ class GDO_ForumThread(GDO):
         from gdo.forum.GDO_ForumPost import GDO_ForumPost
         return [
             GDT_AutoInc('thread_id'),
-            GDT_Board('thread_board').not_null(),
-            GDT_Title('thread_title').not_null(),
-            GDT_UInt('thread_views').not_null().initial('0'),
-            GDT_Creator('thread_creator').not_null(),
-            GDT_Created('thread_created').not_null(),
-            GDT_Virtual(GDT_UInt('thread_postcount')).query(GDO_ForumPost.table().select('COUNT(*)').where('post_thread=thread_id'))
+            GDT_Board('thread_board').not_null().label('board'),
+            GDT_Title('thread_title').not_null().label('title'),
+            GDT_UInt('thread_views').not_null().initial('0').label('views'),
+            GDT_Creator('thread_creator').not_null().label('creator'),
+            GDT_Created('thread_created').not_null().label('created'),
+            GDT_Virtual(GDT_UInt('thread_postcount').label('postcount')).query(GDO_ForumPost.table().select('COUNT(*)').where('post_thread=thread_id'))
         ]
 
     def get_creator(self) -> GDO_User:
@@ -30,4 +30,7 @@ class GDO_ForumThread(GDO):
 
     def render_list(self):
         title = html(self.gdo_value('thread_title'))
-        return title
+        count = self.gdo_value('thread_postcount')
+        created = self.column('thread_created').render_txt()
+        creator = self.column('thread_creator').render_list()
+        return f"{title} ({count}) - {creator} - {created}"
