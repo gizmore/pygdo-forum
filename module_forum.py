@@ -4,6 +4,7 @@ from gdo.core.GDO_User import GDO_User
 from gdo.core.GDT_UInt import GDT_UInt
 from gdo.forum.GDO_ForumBoard import GDO_ForumBoard
 from gdo.forum.GDO_ForumPost import GDO_ForumPost
+from gdo.forum.GDO_ForumPostLikes import GDO_ForumPostLikes
 from gdo.forum.GDO_ForumSubscriptionBoard import GDO_ForumSubscriptionBoard
 from gdo.forum.GDO_ForumSubscriptionThread import GDO_ForumSubscriptionThread
 from gdo.forum.GDO_ForumThread import GDO_ForumThread
@@ -20,11 +21,17 @@ class module_forum(GDO_Module):
         super().__init__()
         self._priority = 45
 
+    def gdo_dependencies(self) -> list:
+        return [
+            'likes',
+        ]
+
     def gdo_classes(self):
         return [
             GDO_ForumBoard,
             GDO_ForumThread,
             GDO_ForumPost,
+            GDO_ForumPostLikes,
             GDO_ForumSubscriptionBoard,
             GDO_ForumSubscriptionThread,
         ]
