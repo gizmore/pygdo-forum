@@ -7,6 +7,7 @@ from gdo.core.GDT_Creator import GDT_Creator
 from gdo.core.GDT_UInt import GDT_UInt
 from gdo.core.GDT_Virtual import GDT_Virtual
 from gdo.date.GDT_Created import GDT_Created
+from gdo.date.Time import Time
 from gdo.forum.GDT_Board import GDT_Board
 from gdo.ui.GDT_Title import GDT_Title
 
@@ -30,7 +31,8 @@ class GDO_ForumThread(GDO):
 
     def render_list(self):
         title = html(self.gdo_value('thread_title'))
-        count = self.gdo_value('thread_postcount')
+        count = self.column('thread_postcount').render_val()
         created = self.column('thread_created').render_txt()
-        creator = self.column('thread_creator').render_list()
-        return f"{title} ({count}) - {creator} - {created}"
+        creator = self.column('thread_creator').render_cell()
+        ago = Time.human_duration(Time.get_time_ago(self.gdo_val('thread_created')))
+        return f"{title} ({count}) - {creator} - {created} - {ago}"

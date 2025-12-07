@@ -8,6 +8,9 @@ btn_add_thread = "Add Thread"
 board = "Board"
 postcount = "Posts"
 
+mt_forum_board = "Forum Board"
+md_forum_board = "List forum threads for a board."
+
 mt_forum_boards = "Forum Boards"
 md_forum_boards = "List forum boards for a parent board."
 

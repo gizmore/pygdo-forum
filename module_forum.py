@@ -13,6 +13,7 @@ from gdo.table.module_table import module_table
 from gdo.ui.GDT_Image import GDT_Image
 from gdo.ui.GDT_Link import GDT_Link
 from gdo.ui.GDT_Page import GDT_Page
+from gdo.user.GDT_Level import GDT_Level
 
 
 class module_forum(GDO_Module):
@@ -48,6 +49,7 @@ class module_forum(GDO_Module):
             GDT_Image('default_board_image'),
             GDT_UInt('forum_ppp').min(1).max(500),
             GDT_UInt('num_latest').min(1).max(500).initial('10'),
+            GDT_Level('post_level').min(0).max(1_000_000).initial('0'),
         ]
 
     def cfg_posts_per_page(self) -> int:
@@ -58,6 +60,9 @@ class module_forum(GDO_Module):
 
     def cfg_default_board_image_id(self):
         return self.get_config_val('default_board_image')
+
+    def cfg_post_level(self) -> int:
+        return self.get_config_value('post_level')
 
     ############
     # Settings #
