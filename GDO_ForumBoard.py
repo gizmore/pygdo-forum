@@ -2,11 +2,13 @@ from gdo.base.GDO import GDO
 from gdo.base.GDT import GDT
 from gdo.base.util.href import href
 from gdo.core.GDT_AutoInc import GDT_AutoInc
+from gdo.core.GDT_Bool import GDT_Bool
 from gdo.core.GDT_Creator import GDT_Creator
 from gdo.core.GDT_Object import GDT_Object
 from gdo.core.GDT_Permission import GDT_Permission
 from gdo.date.GDT_Created import GDT_Created
 from gdo.message.GDT_Message import GDT_Message
+from gdo.table.GDT_Sort import GDT_Sort
 from gdo.ui.GDT_Card import GDT_Card
 from gdo.ui.GDT_Image import GDT_Image
 from gdo.ui.GDT_Link import GDT_Link
@@ -22,6 +24,8 @@ class GDO_ForumBoard(GDO):
             GDT_Title('board_title').not_null(),
             GDT_Image('board_image'),
             GDT_Permission('board_permission'),
+            GDT_Sort('board_sort'),
+            GDT_Bool('board_hidden'),
             GDT_Creator('board_creator'),
             GDT_Created('board_created'),
         ]
