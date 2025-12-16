@@ -2,6 +2,7 @@ from gdo.base.GDT import GDT
 from gdo.base.util.href import href
 from gdo.form.GDT_Form import GDT_Form
 from gdo.form.MethodForm import MethodForm
+from gdo.forum.ForumSubscriptions import ForumSubscriptions
 from gdo.forum.module_forum import module_forum
 from gdo.forum.GDO_ForumPost import GDO_ForumPost
 from gdo.forum.GDO_ForumThread import GDO_ForumThread
@@ -37,5 +38,7 @@ class reply(MethodForm):
             'post_thread': thread.get_id(),
             'post_message': self.param_val('message'),
         }).insert()
+        self.send_mails()
+        ForumSubscriptions.has_subscribed(post, self._env_user)
         return self.redirect(href('forum', 'thread', f'&p={post.get_page_num()}#post-{post.get_id()}'), 'msg_forum_replied')
     
