@@ -14,6 +14,7 @@ from gdo.ui.GDT_Image import GDT_Image
 from gdo.ui.GDT_Link import GDT_Link
 from gdo.ui.GDT_Page import GDT_Page
 from gdo.user.GDT_Level import GDT_Level
+from gdo.base.GDO import GDO
 
 
 class module_forum(GDO_Module):
@@ -27,7 +28,7 @@ class module_forum(GDO_Module):
             'likes',
         ]
 
-    def gdo_classes(self):
+    def gdo_classes(self) -> list[type[GDO]]:
         return [
             GDO_ForumBoard,
             GDO_ForumThread,
