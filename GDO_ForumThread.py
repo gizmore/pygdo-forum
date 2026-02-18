@@ -19,7 +19,7 @@ class GDO_ForumThread(GDO):
         return [
             GDT_AutoInc('thread_id'),
             GDT_Board('thread_board').not_null().label('board'),
-            GDT_Title('thread_title').not_null().label('title'),
+            GDT_Title('thread_title').not_null(),
             GDT_UInt('thread_views').not_null().initial('0').label('views'),
             GDT_Creator('thread_creator').not_null().label('creator'),
             GDT_Created('thread_created').not_null().label('created'),
