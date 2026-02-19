@@ -2,6 +2,8 @@ module_forum = "Forum"
 
 link_forum = "%d Posts"
 
+forum_subscriptions = "Subscriptions"
+
 btn_add_board = "Add Board"
 btn_add_thread = "Add Thread"
 
