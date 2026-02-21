@@ -8,10 +8,12 @@ class ForumInstall():
 
     @classmethod
     def on_install(cls, module_forum: module_forum):
-        GDO_ForumBoard.blank({
-            'board_id': '1',
-            'board_title': t('forum_root_board'),
-        }).soft_replace()
+        if not GDO_ForumBoard.table().get_by_aid('1'):
+            GDO_ForumBoard.blank({
+                'board_id': '1',
+                'board_title': t('forum_root_board'),
+            }).insert()
         if not module_forum.cfg_default_board_image():
             file = GDO_File.from_path(module_forum.file_path('img/board.png')).save()
             module_forum.save_config_val('default_board_image', file.get_id())
+
