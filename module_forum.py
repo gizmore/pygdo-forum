@@ -40,7 +40,7 @@ class module_forum(GDO_Module):
 
     async def gdo_install(self):
         from gdo.forum.ForumInstall import ForumInstall
-        ForumInstall.on_install(self)
+        await ForumInstall.on_install(self)
 
     ##########
     # Config #
@@ -82,4 +82,3 @@ class module_forum(GDO_Module):
     ##########
     def gdo_init_sidebar(self, page: 'GDT_Page'):
         page._left_bar.add_field(GDT_Link().href(self.href('boards')).text('link_forum', (GDO_ForumPost.get_num_posts(),)))
-
