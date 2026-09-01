@@ -16,6 +16,11 @@ from gdo.ui.GDT_TreeView import GDT_TreeView
 
 class boards(MethodQueryTable):
 
+    @classmethod
+    def gdo_trigger(cls) -> str:
+        """Keep the legacy HTML index out of the chat command namespace."""
+        return 'forum.web.boards'
+
     def gdo_table_mode(self) -> TableMode:
         return TableMode.LIST
 

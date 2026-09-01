@@ -41,7 +41,7 @@ class addthread(MethodForm):
         }).insert()
         post = GDO_ForumPost.blank({
             'post_thread': thread.get_id(),
-            'post_message': self.param_val('message'),
+            'post_message_input': self.param_val('message'),
         }).insert()
         Cache.remove('forum', 'postcount')
         return self.redirect(post.get_href(), 'forum_add_thread_success')

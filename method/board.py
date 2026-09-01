@@ -12,6 +12,11 @@ from gdo.ui.GDT_Menu import GDT_Menu
 
 class board(MethodQueryTable):
 
+    @classmethod
+    def gdo_trigger(cls) -> str:
+        """The legacy browser view has a separate chat-safe command."""
+        return 'forum.web.board'
+
     def gdo_table_mode(self) -> TableMode:
         return TableMode.LIST
 

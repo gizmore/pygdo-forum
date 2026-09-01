@@ -12,6 +12,11 @@ from gdo.message.GDT_Message import GDT_Message
 
 class reply(MethodForm):
 
+    @classmethod
+    def gdo_trigger(cls) -> str:
+        """The HTML form is retained, while chats use ``chatreply``."""
+        return 'forum.web.reply'
+
     def gdo_needs_level(self) -> int:
         return module_forum.instance().cfg_post_level()
 
@@ -36,7 +41,7 @@ class reply(MethodForm):
         thread = self.get_thread()
         post = GDO_ForumPost.blank({
             'post_thread': thread.get_id(),
-            'post_message': self.param_val('message'),
+            'post_message_input': self.param_val('message'),
         }).insert()
         self.send_mails()
         ForumSubscriptions.has_subscribed(post, self._env_user)

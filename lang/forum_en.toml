@@ -22,3 +22,13 @@ parent_board = "Parent Board"
 
 mt_forum_addthread = "Add Thread"
 md_forum_addthread = "Add a thread to a forum board."
+
+mt_forum_chatboards = "Forum Boards"
+md_forum_chatboards = "List forum boards in chat."
+mt_forum_chatboard = "Forum Board"
+md_forum_chatboard = "List a board's threads in chat."
+mt_forum_unread = "Unread Forum Threads"
+md_forum_unread = "List forum threads with unread posts."
+mt_forum_chatreply = "Forum Reply"
+md_forum_chatreply = "Reply to a forum thread in chat."
+msg_forum_replied = "Reply %s posted."

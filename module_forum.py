@@ -8,6 +8,7 @@ from gdo.forum.GDO_ForumPostLikes import GDO_ForumPostLikes
 from gdo.forum.GDO_ForumSubscriptionBoard import GDO_ForumSubscriptionBoard
 from gdo.forum.GDO_ForumSubscriptionThread import GDO_ForumSubscriptionThread
 from gdo.forum.GDO_ForumThread import GDO_ForumThread
+from gdo.forum.GDO_ForumThreadRead import GDO_ForumThreadRead
 from gdo.forum.GDT_ForumSubscription import GDT_ForumSubscription
 from gdo.table.module_table import module_table
 from gdo.ui.GDT_Image import GDT_Image
@@ -36,6 +37,7 @@ class module_forum(GDO_Module):
             GDO_ForumPostLikes,
             GDO_ForumSubscriptionBoard,
             GDO_ForumSubscriptionThread,
+            GDO_ForumThreadRead,
         ]
 
     async def gdo_install(self):
