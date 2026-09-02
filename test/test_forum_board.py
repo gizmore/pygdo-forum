@@ -2,6 +2,7 @@ import os
 
 from gdo.base.Application import Application
 from gdo.forum.GDO_ForumBoard import GDO_ForumBoard
+from gdo.forum.method.board import board
 from gdotest.TestUtil import GDOTestCase, reinstall_module
 
 
@@ -28,6 +29,14 @@ class ForumBoardTest(GDOTestCase):
         })
 
         self.assertEqual((1, 2), board.column('board_tree').get_value())
+
+    def test_board_crud_only_edits_board_metadata(self):
+        method = board()
+        fields = method.gdo_form_fields(GDO_ForumBoard.table())
+
+        self.assertEqual(['board_title'], [field.get_name() for field in fields])
+        self.assertFalse(method.feature_create())
+        self.assertEqual('staff', method.gdo_user_permission())
 
     async def test_install_creates_one_root_board(self):
         reinstall_module('forum')
