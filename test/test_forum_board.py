@@ -2,7 +2,7 @@ import os
 
 from gdo.base.Application import Application
 from gdo.forum.GDO_ForumBoard import GDO_ForumBoard
-from gdotest.TestUtil import GDOTestCase
+from gdotest.TestUtil import GDOTestCase, reinstall_module
 
 
 class ForumBoardTest(GDOTestCase):
@@ -28,3 +28,11 @@ class ForumBoardTest(GDOTestCase):
         })
 
         self.assertEqual((1, 2), board.column('board_tree').get_value())
+
+    async def test_install_creates_one_root_board(self):
+        reinstall_module('forum')
+
+        root = GDO_ForumBoard.table().get_by_aid('1')
+        self.assertEqual('Forum', root.gdo_val('board_title'))
+        self.assertEqual((1, 2), root.column('board_tree').get_value())
+        self.assertEqual(1, int(GDO_ForumBoard.table().select('COUNT(*)').exec().fetch_val()))

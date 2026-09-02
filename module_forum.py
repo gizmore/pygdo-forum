@@ -12,3 +12,7 @@ class module_forum(GDO_Module):
 
     def gdo_classes(self) -> list[type[GDO]]:
         return [GDO_ForumBoard]
+
+    async def gdo_install(self):
+        from gdo.forum.ForumInstall import ForumInstall
+        await ForumInstall.on_install()
