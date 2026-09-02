@@ -2,7 +2,9 @@ import os
 
 from gdo.base.Application import Application
 from gdo.forum.GDO_ForumBoard import GDO_ForumBoard
+from gdo.forum.GDT_ForumBoard import GDT_ForumBoard
 from gdo.forum.method.board import board
+from gdo.form.GDT_Form import GDT_Form
 from gdotest.TestUtil import GDOTestCase, reinstall_module
 
 
@@ -54,3 +56,34 @@ class ForumBoardTest(GDOTestCase):
 
         self.assertEqual((1, 4), root.column('board_tree').get_value())
         self.assertEqual((2, 3), child.column('board_tree').get_value())
+
+    async def test_board_selector_renders_ascii_tree(self):
+        reinstall_module('forum')
+        root = GDO_ForumBoard.table().get_by_aid('1')
+        child = GDO_ForumBoard.create_child(root, 'Development')
+
+        choices = GDT_ForumBoard('board_parent').init_choices()
+
+        self.assertEqual('+-- Forum', choices[root.get_id()])
+        self.assertEqual('|  +-- Development', choices[child.get_id()])
+
+    async def test_root_board_parent_selector_is_not_writable(self):
+        reinstall_module('forum')
+        method = board().input('id', '1')
+        method.parameters()
+        form = GDT_Form()
+        method.gdo_create_form(form)
+
+        self.assertFalse(form.get_field('board_parent').is_writable())
+
+    async def test_child_board_can_move_to_another_parent(self):
+        reinstall_module('forum')
+        root = GDO_ForumBoard.table().get_by_aid('1')
+        alpha = GDO_ForumBoard.create_child(root, 'Alpha')
+        beta = GDO_ForumBoard.create_child(root, 'Beta')
+
+        alpha.move_to(beta)
+
+        self.assertEqual((1, 6), root.column('board_tree').get_value())
+        self.assertEqual((2, 5), beta.column('board_tree').get_value())
+        self.assertEqual((3, 4), alpha.column('board_tree').get_value())
