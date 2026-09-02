@@ -47,6 +47,7 @@ class ForumBoardTest(GDOTestCase):
         self.assertEqual('Forum', root.gdo_val('board_title'))
         self.assertEqual((1, 2), root.column('board_tree').get_value())
         self.assertEqual(1, int(GDO_ForumBoard.table().select('COUNT(*)').exec().fetch_val()))
+        self.assertEqual(0, root.num_posts())
 
     async def test_child_board_is_inserted_under_its_parent(self):
         reinstall_module('forum')

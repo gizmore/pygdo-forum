@@ -18,6 +18,14 @@ class GDO_ForumBoard(GDO):
     def render_name(self):
         return self.gdo_val('board_title')
 
+    def num_posts(self) -> int:
+        """Number of posts below this board.
+
+        Posts are introduced after the board tree; keeping the query behind
+        this method lets the navigation stay stable in the meantime.
+        """
+        return 0
+
     def parent(self) -> 'GDO_ForumBoard | None':
         left, right = self.column('board_tree').get_value()
         return (self.table().select().where(
