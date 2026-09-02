@@ -4,6 +4,7 @@ from gdo.base.Application import Application
 from gdo.forum.GDO_ForumBoard import GDO_ForumBoard
 from gdo.forum.GDT_ForumBoard import GDT_ForumBoard
 from gdo.forum.method.board import board
+from gdo.forum.method.boards import boards
 from gdo.form.GDT_Form import GDT_Form
 from gdotest.TestUtil import GDOTestCase, reinstall_module
 
@@ -88,3 +89,16 @@ class ForumBoardTest(GDOTestCase):
         self.assertEqual((1, 6), root.column('board_tree').get_value())
         self.assertEqual((2, 5), beta.column('board_tree').get_value())
         self.assertEqual((3, 4), alpha.column('board_tree').get_value())
+
+    async def test_boards_cards_list_direct_children(self):
+        reinstall_module('forum')
+        root = GDO_ForumBoard.table().get_by_aid('1')
+        alpha = GDO_ForumBoard.create_child(root, 'Alpha')
+        beta = GDO_ForumBoard.create_child(root, 'Beta')
+        GDO_ForumBoard.create_child(alpha, 'Nested')
+        method = boards().input('board', root.get_id())
+        method.parameters()
+
+        result = method.gdo_table_query().exec().fetch_all()
+
+        self.assertEqual([alpha.get_id(), beta.get_id()], [entry.get_id() for entry in result])

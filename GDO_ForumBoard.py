@@ -1,6 +1,7 @@
 from gdo.base.GDO import GDO
 from gdo.base.GDT import GDT
 from gdo.base.Application import Application
+from gdo.base.Cache import Cache
 from gdo.core.GDT_AutoInc import GDT_AutoInc
 from gdo.core.GDT_Tree import GDT_Tree
 from gdo.ui.GDT_Title import GDT_Title
@@ -52,8 +53,16 @@ class GDO_ForumBoard(GDO):
             f'UPDATE {table_name} SET board_tree_left=board_tree_left+2 '
             f'WHERE board_tree_left>{position}'
         )
-        # Keep the caller's selected parent coherent for this request.
-        tree.set_right(position + 2)
+        # The insertion also grows every ancestor. Synchronize each cached
+        # board affected by the SQL update, not just the selected parent.
+        for cached in Cache.OCACHE.get(table_name, {}).values():
+            cached_tree = cached.column('board_tree')
+            cached_left, cached_right = cached_tree.get_value()
+            if cached_right >= position:
+                cached_tree.set_right(cached_right + 2)
+            if cached_left > position:
+                cached_tree.set_left(cached_left + 2)
+            Cache.update_for(cached)
         return cls.blank({
             'board_title': title,
             'board_tree_left': str(position),
@@ -117,4 +126,5 @@ class GDO_ForumBoard(GDO):
                 f'WHERE board_id={board.get_id()}'
             )
             board.column('board_tree').set((left, right))
+            Cache.update_for(board)
         return self
