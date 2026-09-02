@@ -35,7 +35,7 @@ class ForumBoardTest(GDOTestCase):
         fields = method.gdo_form_fields(GDO_ForumBoard.table())
 
         self.assertEqual(['board_title'], [field.get_name() for field in fields])
-        self.assertFalse(method.feature_create())
+        self.assertTrue(method.feature_create())
         self.assertEqual('staff', method.gdo_user_permission())
 
     async def test_install_creates_one_root_board(self):
@@ -45,3 +45,12 @@ class ForumBoardTest(GDOTestCase):
         self.assertEqual('Forum', root.gdo_val('board_title'))
         self.assertEqual((1, 2), root.column('board_tree').get_value())
         self.assertEqual(1, int(GDO_ForumBoard.table().select('COUNT(*)').exec().fetch_val()))
+
+    async def test_child_board_is_inserted_under_its_parent(self):
+        reinstall_module('forum')
+        root = GDO_ForumBoard.table().get_by_aid('1')
+
+        child = GDO_ForumBoard.create_child(root, 'Development')
+
+        self.assertEqual((1, 4), root.column('board_tree').get_value())
+        self.assertEqual((2, 3), child.column('board_tree').get_value())
