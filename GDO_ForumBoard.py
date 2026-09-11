@@ -3,7 +3,9 @@ from gdo.base.GDT import GDT
 from gdo.base.Application import Application
 from gdo.base.Cache import Cache
 from gdo.core.GDT_AutoInc import GDT_AutoInc
+from gdo.core.GDT_Permission import GDT_Permission
 from gdo.core.GDT_Tree import GDT_Tree
+from gdo.ui.GDT_IconSelect import GDT_IconSelect
 from gdo.ui.GDT_Title import GDT_Title
 
 
@@ -13,6 +15,8 @@ class GDO_ForumBoard(GDO):
         return [
             GDT_AutoInc('board_id'),
             GDT_Title('board_title').not_null(),
+            GDT_IconSelect('board_icon'),
+            GDT_Permission('board_permission'),
             GDT_Tree('board_tree').not_null(),
         ]
 
@@ -27,6 +31,18 @@ class GDO_ForumBoard(GDO):
         """
         return 0
 
+    def has_permission(self, user) -> bool:
+        """Whether ``user`` may view content in this board.
+
+        An empty permission deliberately means public access.  A selected
+        permission is checked through the central permission model.
+        """
+        permission = self.column('board_permission').get_value()
+        if permission is None:
+            return True
+        from gdo.core.GDO_Permission import GDO_Permission
+        return GDO_Permission.has_permission(user, permission.get_name())
+
     def parent(self) -> 'GDO_ForumBoard | None':
         left, right = self.column('board_tree').get_value()
         return (self.table().select().where(
@@ -34,7 +50,8 @@ class GDO_ForumBoard(GDO):
         ).order('board_tree_right-board_tree_left').first().exec().fetch_object())
 
     @classmethod
-    def create_child(cls, parent: 'GDO_ForumBoard', title: str) -> 'GDO_ForumBoard':
+    def create_child(cls, parent: 'GDO_ForumBoard', title: str,
+                     icon: str = None, permission: str = None) -> 'GDO_ForumBoard':
         """Append a board as the last child of ``parent``.
 
         The method owns the nested-set update, so callers never write tree
@@ -65,6 +82,8 @@ class GDO_ForumBoard(GDO):
             Cache.update_for(cached)
         return cls.blank({
             'board_title': title,
+            'board_icon': icon,
+            'board_permission': permission,
             'board_tree_left': str(position),
             'board_tree_right': str(position + 1),
         }).insert()

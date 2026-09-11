@@ -1,9 +1,12 @@
 from gdo.base.GDO import GDO
 from gdo.base.GDT import GDT
 from gdo.base.Query import Query
+from gdo.core.GDT_Container import GDT_Container
 from gdo.forum.GDO_ForumBoard import GDO_ForumBoard
 from gdo.forum.GDT_Board import GDT_Board
 from gdo.table.MethodQueryCards import MethodQueryCards
+from gdo.ui.GDT_Link import GDT_Link
+from gdo.ui.GDT_Menu import GDT_Menu
 
 
 class boards(MethodQueryCards):
@@ -15,8 +18,32 @@ class boards(MethodQueryCards):
     def gdo_parameters(self) -> list[GDT]:
         return [GDT_Board('board').not_null().initial('1')]
 
+    def gdo_has_permission(self, user) -> bool:
+        return self.param_value('board').has_permission(user)
+
     def gdo_table(self) -> GDO:
         return GDO_ForumBoard.table()
+
+    def gdo_execute(self) -> GDT:
+        return GDT_Container().vertical().add_fields(
+            self.board_actions(),
+            super().gdo_execute(),
+        )
+
+    def board_actions(self) -> GDT_Menu:
+        board_id = self.param_value('board').get_id()
+        module = self.gdo_module()
+        return GDT_Menu().horizontal().add_fields(
+            GDT_Link('new_board').
+            href(module.href('board', f'&board_parent={board_id}')).
+            text_raw('New board').icon('add'),
+            GDT_Link('edit_board').
+            href(module.href('board', f'&id={board_id}')).
+            text_raw('Edit this board').icon('edit'),
+            GDT_Link('new_thread').
+            href(module.href('new_thread', f'&thread_board={board_id}')).
+            text_raw('New thread').icon('add'),
+        )
 
     def gdo_table_headers(self) -> list[GDT]:
         return [self.gdo_table().column('board_title')]

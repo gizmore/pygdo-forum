@@ -1,6 +1,8 @@
 from gdo.base.GDO import GDO
 from gdo.base.GDO_Module import GDO_Module
 from gdo.forum.GDO_ForumBoard import GDO_ForumBoard
+from gdo.forum.GDO_ForumPost import GDO_ForumPost
+from gdo.forum.GDO_ForumThread import GDO_ForumThread
 from gdo.ui.GDT_Link import GDT_Link
 
 from typing import TYPE_CHECKING
@@ -17,10 +19,10 @@ class module_forum(GDO_Module):
         self._priority = 45
 
     def gdo_classes(self) -> list[type[GDO]]:
-        return [GDO_ForumBoard]
+        return [GDO_ForumBoard, GDO_ForumThread, GDO_ForumPost]
 
     def gdo_dependencies(self) -> list:
-        return ['table']
+        return ['table', 'message']
 
     async def gdo_install(self):
         from gdo.forum.ForumInstall import ForumInstall
@@ -29,7 +31,7 @@ class module_forum(GDO_Module):
     def gdo_init_sidebar(self, page: 'GDT_Page'):
         if root := GDO_ForumBoard.table().get_by_aid('1'):
             page._left_bar.add_field(
-                GDT_Link().href(self.href('board', '&id=1')).
+                GDT_Link().href(self.href('forum', '&board=1')).
                 text_raw(root.render_name()).
                 attr('title', f'{root.num_posts()} Posts')
             )
