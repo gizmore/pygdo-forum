@@ -12,11 +12,25 @@ class thread(MethodQueryCards):
     def gdo_needs_authentication(self) -> bool:
         return False
 
+    def gdo_ordered(self) -> bool:
+        return False
+
+    def gdo_searched(self) -> bool:
+        return False
+
+    def gdo_filtered(self) -> bool:
+        return False
+
     def gdo_parameters(self) -> list[GDT]:
-        return [GDT_Thread('thread').not_null()]
+        return [
+            GDT_Thread('id').not_null().positional(False),
+        ]
 
     def get_thread(self):
-        return self.param_value('thread')
+        return self.param_value('id')
+
+    def gdo_paginate_name(self) -> str:
+        return '_p'
 
     def gdo_has_permission(self, user) -> bool:
         return self.get_thread().get_board().has_permission(user)
@@ -25,6 +39,4 @@ class thread(MethodQueryCards):
         return GDO_ForumPost.table()
 
     def gdo_table_query(self) -> Query:
-        return self.gdo_table().select().where(
-            f'post_thread={self.get_thread().get_id()}'
-        ).order('post_created ASC')
+        return self.gdo_table().select().where(f'post_thread={self.get_thread().get_id()}').order('post_created ASC')

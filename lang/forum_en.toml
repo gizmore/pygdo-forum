@@ -1,0 +1,14 @@
+module_forum = 'Forum'
+
+gdo_forumboard = 'Board'
+gdo_forumthread = 'Thread'
+gdo_forumpost = 'Post'
+
+btn_new_board = "Add Board"
+btn_edit_board = "Edit Board"
+btn_add_thread = 'New Thread'
+
+replies = "Replies"
+last_post_date = "Last Post"
+num_threads = "Threads"
+board_threads_allowed = "Threads?"

@@ -1,10 +1,16 @@
 from gdo.base.GDO import GDO
 from gdo.base.GDT import GDT
+from gdo.base.Query import Query
 from gdo.base.Application import Application
 from gdo.base.Cache import Cache
 from gdo.core.GDT_AutoInc import GDT_AutoInc
+from gdo.core.GDT_Bool import GDT_Bool
+from gdo.core.GDT_Name import GDT_Name
 from gdo.core.GDT_Permission import GDT_Permission
 from gdo.core.GDT_Tree import GDT_Tree
+from gdo.core.GDT_UInt import GDT_UInt
+from gdo.core.GDT_Virtual import GDT_Virtual
+from gdo.date.GDT_Date import GDT_Date
 from gdo.ui.GDT_IconSelect import GDT_IconSelect
 from gdo.ui.GDT_Title import GDT_Title
 
@@ -12,24 +18,60 @@ from gdo.ui.GDT_Title import GDT_Title
 class GDO_ForumBoard(GDO):
 
     def gdo_columns(self) -> list[GDT]:
+        from gdo.forum.GDO_ForumThread import GDO_ForumThread
+        table = GDO_ForumThread.table().gdo_table_name()
         return [
             GDT_AutoInc('board_id'),
+            GDT_Name('board_name').not_null().unique(),
             GDT_Title('board_title').not_null(),
             GDT_IconSelect('board_icon'),
             GDT_Permission('board_permission'),
+            GDT_Bool('board_threads_allowed').not_null().initial('1'),
             GDT_Tree('board_tree').not_null(),
+            GDT_Virtual(GDT_Date('last_post_date')).query(Query().table(table).select('thread_created').where('thread_board BETWEEN gdo_forumboard.board_tree_left AND gdo_forumboard.board_tree_right').order('thread_created DESC').first()),
+            GDT_Virtual(GDT_UInt('num_threads')).query(Query().table(table).select('COUNT(*)').where('thread_board BETWEEN gdo_forumboard.board_tree_left AND gdo_forumboard.board_tree_right')),
         ]
 
     def render_name(self):
         return self.gdo_val('board_title')
 
-    def num_posts(self) -> int:
-        """Number of posts below this board.
+    def get_left(self) -> str:
+        return self.gdo_val('board_tree_left')
 
-        Posts are introduced after the board tree; keeping the query behind
-        this method lets the navigation stay stable in the meantime.
-        """
-        return 0
+    def get_right(self) -> str:
+        return self.gdo_val('board_tree_right')
+
+    def num_posts(self) -> int:
+        """Return the number of posts in threads directly in this board."""
+        return self.post_stats()[0]
+
+    def num_replies(self) -> int:
+        """Return posts excluding one opening post per thread."""
+        posts, threads, _ = self.post_stats()
+        return max(0, posts - threads)
+
+    def last_post_date(self) -> str | None:
+        """Return the most recent post date in this board, if any."""
+        return self.post_stats()[2]
+
+    def post_stats(self) -> tuple[int, int, str | None]:
+        """Fetch lightweight board-listing post statistics on demand."""
+        from gdo.forum.GDO_ForumPost import GDO_ForumPost
+        from gdo.forum.GDO_ForumThread import GDO_ForumThread
+
+        posts = GDO_ForumPost.table().gdo_table_name()
+        threads = GDO_ForumThread.table().gdo_table_name()
+        row = Application.db().select(
+            f'SELECT COUNT(post.post_id), COUNT(DISTINCT thread.thread_id), '
+            f'MAX(post.post_created) FROM {threads} AS thread '
+            f'LEFT JOIN {posts} AS post ON post.post_thread=thread.thread_id '
+            f'WHERE thread.thread_board={self.get_id()}',
+            False,
+        ).fetch_row()
+        return int(row[0] or 0), int(row[1] or 0), row[2]
+
+    def is_thread_allowed(self) -> bool:
+        return self.gdo_value('board_threads_allowed')
 
     def has_permission(self, user) -> bool:
         """Whether ``user`` may view content in this board.
@@ -51,7 +93,8 @@ class GDO_ForumBoard(GDO):
 
     @classmethod
     def create_child(cls, parent: 'GDO_ForumBoard', title: str,
-                     icon: str = None, permission: str = None) -> 'GDO_ForumBoard':
+                     icon: str = None, permission: str = None,
+                     name: str = None) -> 'GDO_ForumBoard':
         """Append a board as the last child of ``parent``.
 
         The method owns the nested-set update, so callers never write tree
@@ -81,6 +124,7 @@ class GDO_ForumBoard(GDO):
                 cached_tree.set_left(cached_left + 2)
             Cache.update_for(cached)
         return cls.blank({
+            'board_name': name or title.lower().replace(' ', '-'),
             'board_title': title,
             'board_icon': icon,
             'board_permission': permission,

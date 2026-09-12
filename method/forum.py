@@ -14,10 +14,10 @@ class forum(Method):
         return False
 
     def gdo_parameters(self) -> list[GDT]:
-        return [GDT_Board('board').not_null().initial('1')]
+        return [GDT_Board('id').not_null().initial('1')]
 
     def get_board(self):
-        return self.param_value('board')
+        return self.param_value('id')
 
     def gdo_has_permission(self, user) -> bool:
         return self.get_board().has_permission(user)

@@ -38,5 +38,7 @@ class GDT_ForumBoard(GDT_ObjectSelect):
         choices = self.init_choices()
         if val in choices:
             return self._table.get_by_aid(val)
+        if board := self._table.get_by_vals({'board_name': val}):
+            return board
         matches = [key for key, label in choices.items() if label.lower().endswith(val.lower())]
         return self._table.get_by_aid(matches[0]) if len(matches) == 1 else None
