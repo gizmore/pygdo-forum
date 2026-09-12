@@ -222,6 +222,10 @@ class ForumBoardTest(GDOTestCase):
         self.assertEqual(root.get_id(), thread_gdo.get_board().get_id())
         self.assertEqual(cli_gizmore().get_id(), post.gdo_val('post_creator'))
         self.assertEqual('This is the opening post.', post.gdo_val('post_message_input'))
+        card = post.render_card()
+        self.assertIn('Welcome', card)
+        self.assertIn('This is the opening post.', card)
+        self.assertIn('gdo-forum-post-message', card)
 
     async def test_add_thread_accepts_a_board_name_and_message_remainder(self):
         reinstall_module('forum')

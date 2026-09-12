@@ -1,5 +1,6 @@
 from gdo.base.GDO import GDO
 from gdo.base.GDT import GDT
+from gdo.base.Util import module_enabled
 from gdo.core.GDT_AutoInc import GDT_AutoInc
 from gdo.core.GDT_Creator import GDT_Creator
 from gdo.core.GDT_Editor import GDT_Editor
@@ -10,7 +11,7 @@ from gdo.forum.GDO_ForumLikes import GDO_ForumLikes
 from gdo.likes.GDO_LikeTable import GDO_LikeTable
 from gdo.likes.WithLikes import WithLikes
 from gdo.message.GDT_Message import GDT_Message
-from gdo.ui.GDT_Card import GDT_Card
+from gdo.core.GDT_Template import GDT_Template
 
 
 class GDO_ForumPost(WithLikes, GDO):
@@ -32,10 +33,18 @@ class GDO_ForumPost(WithLikes, GDO):
         ]
 
     def render_card(self) -> str:
-        card = GDT_Card().gdo(self)
-        card.get_header().add_fields(
-            self.column('post_creator'),
-            self.column('post_created'),
-        )
-        card.get_content().add_field(self.column('post_message'))
-        return card.render_html()
+        """Render one forum post with its author beside the message."""
+        creator = self.column('post_creator')
+        avatar = None
+        if module_enabled('avatar'):
+            from gdo.avatar.GDT_Avatar import GDT_Avatar
+            avatar = GDT_Avatar('post_avatar').for_user(creator.get_value())
+
+        return GDT_Template.python('forum', 'post_card.html', {
+            'thread': self.column('post_thread').get_value(),
+            'avatar': avatar,
+            'creator': creator,
+            'created': self.column('post_created'),
+            'message': self.column('post_message'),
+            'edited': self.column('post_edited'),
+        })

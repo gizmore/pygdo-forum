@@ -1,0 +1,23 @@
+<article class="card mb-3 gdt-card gdo-forum-post">
+    <header class="card-header">
+        <%=thread.column('thread_title').render_html()%>
+    </header>
+    <div class="card-body d-flex gap-3">
+        <% if avatar: %>
+        <aside class="gdo-forum-post-avatar flex-shrink-0">
+            <%=avatar.render_html()%>
+        </aside>
+        <% : %>
+        <section class="gdo-forum-post-message flex-grow-1">
+            <div class="gdo-forum-post-meta small text-muted mb-2">
+                <%=creator.render_html()%> &middot; <%=created.render_html()%>
+            </div>
+            <div class="gdo-forum-post-content"><%=message.render_card()%></div>
+        </section>
+    </div>
+    <% if edited.get_val(): %>
+    <footer class="card-footer small text-muted">
+        <%=edited.render_card()%>
+    </footer>
+    <% : %>
+</article>
