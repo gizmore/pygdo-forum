@@ -9,6 +9,9 @@ from gdo.table.MethodQueryCards import MethodQueryCards
 class thread(MethodQueryCards):
     """Show a thread's posts as chronological message cards."""
 
+    def gdo_method_hidden(self) -> bool:
+        return True
+
     def gdo_needs_authentication(self) -> bool:
         return False
 

@@ -14,6 +14,9 @@ from gdo.ui.GDT_Link import GDT_Link
 class threads(MethodQueryTable):
     """List the discussion threads belonging directly to one forum board."""
 
+    def gdo_method_hidden(self) -> bool:
+        return True
+
     def gdo_needs_authentication(self) -> bool:
         return False
 

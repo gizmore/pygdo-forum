@@ -12,6 +12,9 @@ class thread_crud(MethodCrud):
     model when it is inserted rather than supplied by the form.
     """
 
+    def gdo_method_hidden(self) -> bool:
+        return True
+
     def gdo_table(self) -> GDO:
         return GDO_ForumThread.table()
 

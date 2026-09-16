@@ -11,6 +11,9 @@ from gdo.forum.GDT_Board import GDT_Board
 class new_thread(MethodForm):
     """Create a thread together with its opening post."""
 
+    def gdo_method_hidden(self) -> bool:
+        return True
+
     def gdo_parameters(self) -> list[GDT]:
         # This accepts the board supplied by the board page's ``New thread``
         # link before the form is built.

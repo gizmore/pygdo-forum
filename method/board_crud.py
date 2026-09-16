@@ -9,6 +9,9 @@ from gdo.forum.GDT_ForumBoard import GDT_ForumBoard
 class board_crud(MethodCrud):
     """Staff editor for forum board metadata and tree placement."""
 
+    def gdo_method_hidden(self) -> bool:
+        return True
+
     def gdo_table(self) -> GDO:
         return GDO_ForumBoard.table()
 

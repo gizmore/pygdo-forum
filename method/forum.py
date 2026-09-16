@@ -10,6 +10,9 @@ from gdo.base.Method import Method
 class forum(Method):
     """Show one forum board and the threads directly inside it."""
 
+    def gdo_method_hidden(self) -> bool:
+        return True
+
     def gdo_needs_authentication(self) -> bool:
         return False
 

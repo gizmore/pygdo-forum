@@ -17,6 +17,9 @@ from gdo.ui.GDT_Menu import GDT_Menu
 class boards(MethodQueryTable):
     """Render the direct children of one forum board as cards."""
 
+    def gdo_method_hidden(self) -> bool:
+        return True
+
     def gdo_needs_authentication(self) -> bool:
         return False
 

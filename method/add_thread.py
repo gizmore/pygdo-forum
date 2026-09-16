@@ -15,6 +15,9 @@ class add_thread(Method):
     def gdo_trigger(cls):
         return 'forum.add_thread'
 
+    def gdo_method_hidden(self) -> bool:
+        return True
+
     def gdo_needs_authentication(self) -> bool:
         return True
 

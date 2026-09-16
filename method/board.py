@@ -13,6 +13,9 @@ class board(Method):
     def gdo_needs_authentication(self) -> bool:
         return False
 
+    def gdo_method_hidden(self) -> bool:
+        return True
+
     def gdo_parameters(self) -> list[GDT]:
         return [
             GDT_Board('board').not_null().positional(),
