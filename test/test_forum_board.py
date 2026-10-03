@@ -35,6 +35,9 @@ class ForumBoardTest(GDOTestCase):
         self.assertIn('rel="nofollow"', link.text_raw('Next').render_html())
         self.assertNotIn('rel', GDT_Link().nofollow(False).get_attrs())
 
+    def test_link_cells_are_full_click_targets(self):
+        self.assertEqual('full-click-column', GDT_Link().html_cell_class())
+
     def test_board_has_a_nested_set_tree(self):
         columns = GDO_ForumBoard.table().columns()
 
