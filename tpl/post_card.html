@@ -1,4 +1,4 @@
-<article class="card mb-3 gdt-card gdo-forum-post">
+<article id="forum-post-<%=post.get_id()%>" class="card mb-3 gdt-card gdo-forum-post">
     <header class="card-header">
         <%=thread.column('thread_title').render_html()%>
     </header>
@@ -12,7 +12,7 @@
             <div class="gdo-forum-post-meta small text-muted mb-2">
                 <%=creator.render_html()%> &middot; <%=created.render_html()%>
             </div>
-            <div class="gdo-forum-post-content"><%=message.render_card()%></div>
+            <div class="gdo-forum-post-content"><%=message_html%></div>
         </section>
     </div>
     <% if edited.get_val(): %>

@@ -1,4 +1,5 @@
 from gdo.base.GDT import GDT
+from gdo.base.Application import Application
 from gdo.base.Method import Method
 from gdo.core.GDO_User import GDO_User
 from gdo.core.GDT_RestOfText import GDT_RestOfText
@@ -6,9 +7,10 @@ from gdo.forum.GDO_ForumPost import GDO_ForumPost
 from gdo.forum.GDO_ForumThread import GDO_ForumThread
 from gdo.forum.GDT_Board import GDT_Board
 from gdo.ui.GDT_Title import GDT_Title
+from gdo.forum.ForumAccess import ForumAccess
 
 
-class add_thread(Method):
+class add_thread(ForumAccess, Method):
     """Create a thread and its opening post from one CLI command."""
 
     @classmethod
@@ -30,10 +32,12 @@ class add_thread(Method):
 
     def gdo_has_permission(self, user: GDO_User) -> bool:
         board = self.param_value('board', False)
-        return bool(board and board.has_permission(user))
+        return bool(not Application.IS_HTTP and user.is_authenticated() and board and board.has_permission(user) and board.is_thread_allowed())
 
     async def gdo_execute(self):
         board = self.param_value('board')
+        if not self.gdo_has_permission(GDO_User.current()):
+            return self.err('err_permission_required')
         thread = GDO_ForumThread.blank({
             'thread_board': board.get_id(),
             'thread_title': self.param_val('title'),
@@ -44,4 +48,4 @@ class add_thread(Method):
             'post_message_input': self.param_val('message'),
             'post_message_editor': 'html',
         }).insert()
-        return self.msg('msg_crud_created', (thread.render_name(),))
+        return self.msg('msg_forum_thread_created', (thread.render_name(),))

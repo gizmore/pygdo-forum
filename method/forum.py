@@ -4,10 +4,12 @@ from gdo.forum.GDT_Board import GDT_Board
 from gdo.forum.method.boards import boards
 from gdo.forum.method.threads import threads
 from gdo.ui.GDT_Panel import GDT_Panel
+from gdo.ui.GDT_Link import GDT_Link
 from gdo.base.Method import Method
+from gdo.forum.ForumAccess import ForumAccess
 
 
-class forum(Method):
+class forum(ForumAccess, Method):
     """Show one forum board and the threads directly inside it."""
 
     def gdo_method_hidden(self) -> bool:
@@ -23,7 +25,8 @@ class forum(Method):
         return self.param_value('id')
 
     def gdo_has_permission(self, user) -> bool:
-        return self.get_board().has_permission(user)
+        board = self.param_value('id', False)
+        return bool(board and board.has_permission(user))
 
     def get_threads(self) -> threads:
         return threads().env_copy(self).input('board', self.get_board().get_id())
@@ -33,8 +36,12 @@ class forum(Method):
 
     async def gdo_execute(self) -> GDT:
         board = self.get_board()
-        return GDT_Container().vertical().add_fields(
+        result = GDT_Container().vertical().add_fields(
             GDT_Panel().title_raw(board.render_name()),
             await self.get_child_boards().execute(),
             await self.get_threads().execute(),
+            GDT_Link().href(self.gdo_module().href('rss', format='rss')).text('btn_forum_rss'),
         )
+        if (parent := board.parent()) and parent.has_permission(self._env_user):
+            result.add_field(GDT_Link().href(self.gdo_module().href('forum', f'&id={parent.get_id()}')).text('btn_parent_board'))
+        return result

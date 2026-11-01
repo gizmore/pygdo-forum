@@ -19,7 +19,9 @@ class GDO_ForumBoard(GDO):
 
     def gdo_columns(self) -> list[GDT]:
         from gdo.forum.GDO_ForumThread import GDO_ForumThread
+        from gdo.forum.GDO_ForumPost import GDO_ForumPost
         table = GDO_ForumThread.table().gdo_table_name()
+        posts = GDO_ForumPost.table().gdo_table_name()
         return [
             GDT_AutoInc('board_id'),
             GDT_Name('board_name').not_null().unique(),
@@ -28,8 +30,8 @@ class GDO_ForumBoard(GDO):
             GDT_Permission('board_permission'),
             GDT_Bool('board_threads_allowed').not_null().initial('1'),
             GDT_Tree('board_tree').not_null(),
-            GDT_Virtual(GDT_Date('last_post_date')).query(Query().table(table).select('thread_created').where('thread_board BETWEEN gdo_forumboard.board_tree_left AND gdo_forumboard.board_tree_right').order('thread_created DESC').first()),
-            GDT_Virtual(GDT_UInt('num_threads')).query(Query().table(table).select('COUNT(*)').where('thread_board BETWEEN gdo_forumboard.board_tree_left AND gdo_forumboard.board_tree_right')),
+            GDT_Virtual(GDT_Date('last_post_date')).query(Query().table(posts).select('MAX(post_created)').where(f'post_thread IN (SELECT thread_id FROM {table} WHERE thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL)')),
+            GDT_Virtual(GDT_UInt('num_threads')).query(Query().table(table).select('COUNT(*)').where('thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL')),
         ]
 
     def render_name(self):
@@ -47,31 +49,34 @@ class GDO_ForumBoard(GDO):
 
     def num_replies(self) -> int:
         """Return posts excluding one opening post per thread."""
-        posts, threads, _ = self.post_stats()
-        return max(0, posts - threads)
+        posts, threads_with_posts, _ = self.post_stats()
+        return posts - threads_with_posts
 
     def last_post_date(self) -> str | None:
         """Return the most recent post date in this board, if any."""
         return self.post_stats()[2]
 
     def post_stats(self) -> tuple[int, int, str | None]:
-        """Fetch lightweight board-listing post statistics on demand."""
+        """Return posts, threads with posts, and the latest post date."""
         from gdo.forum.GDO_ForumPost import GDO_ForumPost
         from gdo.forum.GDO_ForumThread import GDO_ForumThread
 
         posts = GDO_ForumPost.table().gdo_table_name()
         threads = GDO_ForumThread.table().gdo_table_name()
         row = Application.db().select(
-            f'SELECT COUNT(post.post_id), COUNT(DISTINCT thread.thread_id), '
+            f'SELECT COUNT(post.post_id), COUNT(DISTINCT post.post_thread), '
             f'MAX(post.post_created) FROM {threads} AS thread '
             f'LEFT JOIN {posts} AS post ON post.post_thread=thread.thread_id '
-            f'WHERE thread.thread_board={self.get_id()}',
+            f'WHERE thread.thread_board={self.get_id()} AND thread.thread_deleted IS NULL',
             False,
         ).fetch_row()
         return int(row[0] or 0), int(row[1] or 0), row[2]
 
     def is_thread_allowed(self) -> bool:
-        return self.gdo_value('board_threads_allowed')
+        if not self.is_persisted() or not self.get_id():
+            return False
+        row = self.table().select('board_threads_allowed').where(f'board_id={int(self.get_id())}').nocache().exec().fetch_assoc()
+        return bool(row and str(row['board_threads_allowed']) == '1')
 
     def has_permission(self, user) -> bool:
         """Whether ``user`` may view content in this board.
@@ -79,29 +84,55 @@ class GDO_ForumBoard(GDO):
         An empty permission deliberately means public access.  A selected
         permission is checked through the central permission model.
         """
-        permission = self.column('board_permission').get_value()
-        if permission is None:
+        if not self.is_persisted() or not self.get_id():
+            return False
+        row = self.table().select('board_permission').where(f'board_id={int(self.get_id())}').nocache().exec().fetch_assoc()
+        if row is None:
+            return False
+        permission_id = row['board_permission']
+        if permission_id is None:
             return True
         from gdo.core.GDO_Permission import GDO_Permission
-        return GDO_Permission.has_permission(user, permission.get_name())
+        permission = GDO_Permission.table().get_by_aid(str(permission_id))
+        return bool(permission and GDO_Permission.has_permission(user, permission.get_name()))
 
     def parent(self) -> 'GDO_ForumBoard | None':
-        left, right = self.column('board_tree').get_value()
+        if not self.get_id():
+            return None
+        current = self.table().select('board_tree_left, board_tree_right').where(
+            f'board_id={int(self.get_id())}'
+        ).nocache().exec().fetch_assoc()
+        if not current:
+            return None
+        left, right = int(current['board_tree_left']), int(current['board_tree_right'])
         return (self.table().select().where(
             f'board_tree_left<{left} AND board_tree_right>{right}'
-        ).order('board_tree_right-board_tree_left').first().exec().fetch_object())
+        ).order('board_tree_right-board_tree_left').first().nocache().exec().fetch_object())
+
+    @classmethod
+    def lock_tree(cls) -> dict[str, tuple[int, int]]:
+        """Read and lock the current tree until the caller commits."""
+        result = Application.db().select(
+            f'SELECT board_id, board_tree_left, board_tree_right FROM {cls.table().gdo_table_name()} '
+            'ORDER BY board_id FOR UPDATE', False)
+        rows = {}
+        while row := result.fetch_row():
+            rows[str(row[0])] = (int(row[1]), int(row[2]))
+        return rows
 
     @classmethod
     def create_child(cls, parent: 'GDO_ForumBoard', title: str,
                      icon: str = None, permission: str = None,
-                     name: str = None) -> 'GDO_ForumBoard':
+                     name: str = None, threads_allowed: str = '1') -> 'GDO_ForumBoard':
         """Append a board as the last child of ``parent``.
 
         The method owns the nested-set update, so callers never write tree
         boundaries directly.
         """
-        tree = parent.column('board_tree')
-        position = tree.get_right()
+        rows = cls.lock_tree()
+        if parent.get_id() not in rows:
+            raise ValueError('The parent board no longer exists.')
+        position = rows[parent.get_id()][1]
         table = cls.table()
         table_name = table.gdo_table_name()
 
@@ -116,43 +147,45 @@ class GDO_ForumBoard(GDO):
         # The insertion also grows every ancestor. Synchronize each cached
         # board affected by the SQL update, not just the selected parent.
         for cached in Cache.OCACHE.get(table_name, {}).values():
+            if cached.get_id() not in rows:
+                continue
             cached_tree = cached.column('board_tree')
-            cached_left, cached_right = cached_tree.get_value()
-            if cached_right >= position:
-                cached_tree.set_right(cached_right + 2)
-            if cached_left > position:
-                cached_tree.set_left(cached_left + 2)
+            cached_left, cached_right = rows[cached.get_id()]
+            cached_tree.set((cached_left + (2 if cached_left > position else 0),
+                             cached_right + (2 if cached_right >= position else 0)))
             Cache.update_for(cached)
         return cls.blank({
             'board_name': name or title.lower().replace(' ', '-'),
             'board_title': title,
             'board_icon': icon,
             'board_permission': permission,
+            'board_threads_allowed': threads_allowed,
             'board_tree_left': str(position),
             'board_tree_right': str(position + 1),
         }).insert()
 
     def move_to(self, parent: 'GDO_ForumBoard') -> 'GDO_ForumBoard':
         """Move this subtree below ``parent`` and rebuild nested-set bounds."""
-        old_parent = self.parent()
-        if old_parent and old_parent.get_id() == parent.get_id():
-            return self
-        if old_parent is None:
-            raise ValueError('The root board cannot be moved.')
-
-        boards = self.table().select().order('board_tree_left').exec().fetch_all()
+        rows = self.lock_tree()
+        if self.get_id() not in rows or parent.get_id() not in rows:
+            raise ValueError('The board or its parent no longer exists.')
         children: dict[str | None, list[str]] = {None: []}
         parents: dict[str, str | None] = {}
         stack = []
-        for board in boards:
-            left, _ = board.column('board_tree').get_value()
-            while stack and left > stack[-1].column('board_tree').get_right():
+        for board_id in sorted(rows, key=lambda key: rows[key][0]):
+            left, right = rows[board_id]
+            while stack and left > stack[-1][1]:
                 stack.pop()
-            parent_id = stack[-1].get_id() if stack else None
-            parents[board.get_id()] = parent_id
-            children.setdefault(parent_id, []).append(board.get_id())
-            children.setdefault(board.get_id(), [])
-            stack.append(board)
+            parent_id = stack[-1][0] if stack else None
+            parents[board_id] = parent_id
+            children.setdefault(parent_id, []).append(board_id)
+            children.setdefault(board_id, [])
+            stack.append((board_id, right))
+
+        if parents[self.get_id()] is None:
+            raise ValueError('The root board cannot be moved.')
+        if parents[self.get_id()] == parent.get_id():
+            return self
 
         descendant_ids = set()
         pending = [self.get_id()]
@@ -182,12 +215,14 @@ class GDO_ForumBoard(GDO):
         for board_id in children[None]:
             visit(board_id)
         table_name = self.gdo_table_name()
-        for board in boards:
-            left, right = bounds[board.get_id()]
+        for board_id in rows:
+            left, right = bounds[board_id]
             Application.db().query(
                 f'UPDATE {table_name} SET board_tree_left={left}, board_tree_right={right} '
-                f'WHERE board_id={board.get_id()}'
+                f'WHERE board_id={int(board_id)}'
             )
-            board.column('board_tree').set((left, right))
-            Cache.update_for(board)
+            cached = Cache.OCACHE.get(table_name, {}).get(board_id)
+            if cached:
+                cached.column('board_tree').set((left, right))
+                Cache.update_for(cached)
         return self

@@ -10,6 +10,7 @@ from gdo.core.GDT_UInt import GDT_UInt
 from gdo.core.GDT_Virtual import GDT_Virtual
 from gdo.date.GDT_Created import GDT_Created
 from gdo.date.GDT_Edited import GDT_Edited
+from gdo.date.GDT_Deleted import GDT_Deleted
 from gdo.forum.GDO_ForumBoard import GDO_ForumBoard
 from gdo.forum.GDO_ForumPost import GDO_ForumPost
 from gdo.ui.GDT_Title import GDT_Title
@@ -17,6 +18,10 @@ from gdo.ui.GDT_Title import GDT_Title
 
 class GDO_ForumThread(GDO):
     """A discussion thread, located directly in one forum board."""
+
+    def gdo_cached(self) -> bool:
+        # num_replies depends on posts, which can change independently.
+        return False
 
     def gdo_columns(self) -> list[GDT]:
         post_table = GDO_ForumPost.table().gdo_table_name()
@@ -28,14 +33,18 @@ class GDO_ForumThread(GDO):
             GDT_Created('thread_created'),
             GDT_Editor('thread_editor'),
             GDT_Edited('thread_edited'),
-            GDT_Virtual(GDT_UInt('num_replies')).query(Query().table(post_table).select('COUNT(*)').where('post_thread=thread_id')),
+            GDT_Deleted('thread_deleted'),
+            GDT_Virtual(GDT_UInt('num_replies')).query(Query().table(post_table).select('CASE WHEN COUNT(*) > 0 THEN COUNT(*) - 1 ELSE 0 END').where('post_thread=thread_id')),
         ]
 
     def render_name(self):
         return self.gdo_val('thread_title')
 
-    def get_board(self) -> GDO_ForumBoard:
-        return self.column('thread_board').get_value()
+    def get_board(self) -> GDO_ForumBoard | None:
+        if not self.is_persisted() or not self.get_id():
+            return None
+        row = self.table().select('thread_board').where(f'thread_id={int(self.get_id())}').where('thread_deleted IS NULL').nocache().exec().fetch_assoc()
+        return GDO_ForumBoard.table().get_by_aid(str(row['thread_board'])) if row and row['thread_board'] is not None else None
 
     def seo_title(self) -> str:
         """Return the stable, human-readable part of this thread's URL."""

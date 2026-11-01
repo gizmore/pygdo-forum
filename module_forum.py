@@ -2,6 +2,7 @@ from gdo.base.GDO import GDO
 from gdo.base.GDO_Module import GDO_Module
 from gdo.base.GDT import GDT
 from gdo.core.GDT_Bool import GDT_Bool
+from gdo.core.GDO_User import GDO_User
 from gdo.forum.GDO_ForumBoard import GDO_ForumBoard
 from gdo.forum.GDO_ForumLikes import GDO_ForumLikes
 from gdo.forum.GDO_ForumPost import GDO_ForumPost
@@ -25,7 +26,10 @@ class module_forum(GDO_Module):
         return [GDO_ForumBoard, GDO_ForumThread, GDO_ForumPost, GDO_ForumLikes]
 
     def gdo_dependencies(self) -> list:
-        return ['table', 'message']
+        return ['table', 'message', 'likes']
+
+    def gdo_main_method_name(self) -> str:
+        return 'forum'
 
     def gdo_module_config(self) -> list[GDT]:
         return [
@@ -40,9 +44,10 @@ class module_forum(GDO_Module):
         await ForumInstall.on_install()
 
     def gdo_init_sidebar(self, page: 'GDT_Page'):
-        if root := GDO_ForumBoard.table().get_by_aid('1'):
+        if (root := GDO_ForumBoard.table().get_by_aid('1')) and root.has_permission(GDO_User.current()):
             page._left_bar.add_field(
-                GDT_Link().href(self.href('forum', '&board=1')).
+                GDT_Link().href(self.href('forum', '&id=1')).
                 text_raw(root.render_name()).
+                icon('book').
                 attr('title', f'Posts')
             )
