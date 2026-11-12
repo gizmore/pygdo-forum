@@ -30,8 +30,8 @@ class GDO_ForumBoard(GDO):
             GDT_Permission('board_permission'),
             GDT_Bool('board_threads_allowed').not_null().initial('1'),
             GDT_Tree('board_tree').not_null(),
-            GDT_Virtual(GDT_Date('last_post_date')).query(Query().table(posts).select('MAX(post_created)').where(f'post_thread IN (SELECT thread_id FROM {table} WHERE thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL)')),
-            GDT_Virtual(GDT_UInt('num_threads')).query(Query().table(table).select('COUNT(*)').where('thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL')),
+            GDT_Virtual(GDT_Date('last_post_date')).query(Query().table(posts).select('MAX(post_created)').where(f'post_thread IN (SELECT thread_id FROM {table} WHERE thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL)')).auto_select(True),
+            GDT_Virtual(GDT_UInt('num_threads')).query(Query().table(table).select('COUNT(*)').where('thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL')).auto_select(True),
         ]
 
     def render_name(self):

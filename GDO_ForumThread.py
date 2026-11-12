@@ -34,7 +34,7 @@ class GDO_ForumThread(GDO):
             GDT_Editor('thread_editor'),
             GDT_Edited('thread_edited'),
             GDT_Deleted('thread_deleted'),
-            GDT_Virtual(GDT_UInt('num_replies')).query(Query().table(post_table).select('CASE WHEN COUNT(*) > 0 THEN COUNT(*) - 1 ELSE 0 END').where('post_thread=thread_id')),
+            GDT_Virtual(GDT_UInt('num_replies')).query(Query().table(post_table).select('CASE WHEN COUNT(*) > 0 THEN COUNT(*) - 1 ELSE 0 END').where('post_thread=thread_id')).auto_select(True),
         ]
 
     def render_name(self):
