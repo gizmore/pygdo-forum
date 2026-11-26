@@ -2,6 +2,8 @@ from gdo.base.GDO import GDO
 from gdo.base.GDT import GDT
 from gdo.base.Query import Query
 from gdo.base.Render import Mode
+from gdo.base.Render import Render
+from gdo.base.Trans import t
 from gdo.core.GDT_Int import GDT_Int
 from gdo.core.GDT_Container import GDT_Container
 from gdo.core.GDT_UInt import GDT_UInt
@@ -15,6 +17,7 @@ from gdo.ui.GDT_Link import GDT_Link
 from gdo.ui.GDT_Button import GDT_Button
 from gdo.ui.GDT_Menu import GDT_Menu
 from gdo.forum.ForumAccess import ForumAccess
+from gdo.forum.LastPostTime import render_last_post_time
 
 
 class boards(ForumAccess, MethodQueryTable):
@@ -112,7 +115,6 @@ class boards(ForumAccess, MethodQueryTable):
     def render_replies(self, replies: GDT_Int, board: GDO_ForumBoard) -> str:
         return replies.val(str(board.num_replies())).render_html()
 
-    # def render_last_post_date(self, date: GDT_Created, board: GDO_ForumBoard) -> str:
-    #     if last_post := board.last_post_date():
-    #         return date.val(last_post).render_html()
-    #     return ''
+    def render_last_post_date(self, date: GDT_Date, board: GDO_ForumBoard) -> str:
+        last_post = board.gdo_val('last_post_date')
+        return render_last_post_time(last_post) if last_post else Render.italic(t('none'), Mode.render_html)

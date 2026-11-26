@@ -1,3 +1,5 @@
+from html import escape
+
 from gdo.base.GDO import GDO
 from gdo.base.GDT import GDT
 from gdo.base.Query import Query
@@ -37,6 +39,31 @@ class thread(ForumAccess, MethodQueryCards):
 
     def get_thread(self):
         return self.param_value('id')
+
+    def preview_thread(self):
+        """Only expose metadata when this request may read the board."""
+        discussion = self.param_value('id', False)
+        user = getattr(self, '_env_user', None)
+        if not discussion or not user or discussion.gdo_val('thread_deleted'):
+            return None
+        board = discussion.get_board()
+        return discussion if board and board.has_permission(user) else None
+
+    def gdo_render_title(self):
+        if discussion := self.preview_thread():
+            return escape(discussion.render_name(), quote=True)
+        return super().gdo_render_title()
+
+    def gdo_render_descr(self):
+        if discussion := self.preview_thread():
+            post = GDO_ForumPost.table().select().where(
+                f'post_thread={int(discussion.get_id())}'
+            ).order('post_created ASC, post_id ASC').first().exec().fetch_object()
+            if post:
+                excerpt = ' '.join(post.render_message(Mode.render_txt).split())
+                if excerpt:
+                    return escape(excerpt[:200], quote=True)
+        return super().gdo_render_descr()
 
     def gdo_paginate_name(self) -> str:
         return '_p'

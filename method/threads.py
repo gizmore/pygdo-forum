@@ -12,6 +12,7 @@ from gdo.core.GDT_UInt import GDT_UInt
 from gdo.table.MethodQueryTable import MethodQueryTable
 from gdo.ui.GDT_Link import GDT_Link
 from gdo.forum.ForumAccess import ForumAccess
+from gdo.forum.LastPostTime import render_last_post_time
 
 
 class threads(ForumAccess, MethodQueryTable):
@@ -88,7 +89,7 @@ class threads(ForumAccess, MethodQueryTable):
         if not (post := thread.get_last_post()):
             return ''
         page = post.thread_page()
-        date = GDT_Created('last_post_date').val(post.gdo_val('post_created'))
+        date = render_last_post_time(post.gdo_val('post_created'))
         first = GDT_Link().icon(None).href(self.thread_href(thread)).text_raw('firstpost').render_html()
         last = link.href(self.thread_href(thread, page) + f'#forum-post-{post.get_id()}').text_raw('lastpost').render_html()
-        return f'{date.render_html()} ({first} {last})'
+        return f'{date} ({first} {last})'
