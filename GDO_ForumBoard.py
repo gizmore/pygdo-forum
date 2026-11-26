@@ -17,6 +17,9 @@ from gdo.ui.GDT_Title import GDT_Title
 
 class GDO_ForumBoard(GDO):
 
+    def gdo_persistent(self) -> bool:
+        return True
+
     def gdo_columns(self) -> list[GDT]:
         from gdo.forum.GDO_ForumThread import GDO_ForumThread
         from gdo.forum.GDO_ForumPost import GDO_ForumPost
@@ -30,9 +33,14 @@ class GDO_ForumBoard(GDO):
             GDT_Permission('board_permission'),
             GDT_Bool('board_threads_allowed').not_null().initial('1'),
             GDT_Tree('board_tree').not_null(),
-            GDT_Virtual(GDT_Date('last_post_date')).query(Query().table(posts).select('MAX(post_created)').where(f'post_thread IN (SELECT thread_id FROM {table} WHERE thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL)')).auto_select(True),
-            GDT_Virtual(GDT_UInt('num_threads')).query(Query().table(table).select('COUNT(*)').where('thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL')).auto_select(True),
+            GDT_Virtual(GDT_Date('last_post_date')).query(Query().table(posts).select('MAX(post_created)').where(f'post_thread IN (SELECT thread_id FROM {table} WHERE thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL)')),
+            GDT_Virtual(GDT_UInt('num_threads')).query(Query().table(table).select('COUNT(*)').where('thread_board=gdo_forumboard.board_id AND thread_deleted IS NULL')),
         ]
+
+    def select_with_stats(self, query: Query) -> Query:
+        for name in ('last_post_date', 'num_threads'):
+            self.column(name).select_into(query)
+        return query
 
     def render_name(self):
         return self.gdo_val('board_title')
@@ -86,10 +94,9 @@ class GDO_ForumBoard(GDO):
         """
         if not self.is_persisted() or not self.get_id():
             return False
-        row = self.table().select('board_permission').where(f'board_id={int(self.get_id())}').nocache().exec().fetch_assoc()
-        if row is None:
+        if 'board_permission' not in self._vals:
             return False
-        permission_id = row['board_permission']
+        permission_id = self.gdo_val('board_permission')
         if permission_id is None:
             return True
         from gdo.core.GDO_Permission import GDO_Permission

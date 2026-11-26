@@ -171,7 +171,7 @@ class ForumBoardTest(GDOTestCase):
             self.assertIsNone(selector.to_value(child.get_id()))
             self.assertIsNone(selector.to_value(child.gdo_val('board_name')))
 
-    async def test_cached_board_rechecks_permission_for_direct_access(self):
+    async def test_cached_board_permission_requires_refresh_after_raw_database_change(self):
         reinstall_module('forum')
         root = GDO_ForumBoard.table().get_by_aid('1')
         child = GDO_ForumBoard.create_child(root, 'Access change')
@@ -181,6 +181,8 @@ class ForumBoardTest(GDOTestCase):
         staff = GDO_Permission.table().get_by_vals({'perm_name': 'staff'})
         Application.db().query(f'UPDATE gdo_forumboard SET board_permission={int(staff.get_id())} WHERE board_id={int(child.get_id())}')
         with patch.object(GDO_Permission, 'has_permission', return_value=False):
+            self.assertTrue(cached.has_permission(user))  # Raw SQL does not invalidate this cache.
+            cached.set_val('board_permission', staff.get_id(), dirty=False)
             self.assertFalse(cached.has_permission(user))
 
     async def test_cached_board_rechecks_thread_creation_setting(self):
@@ -308,7 +310,8 @@ class ForumBoardTest(GDOTestCase):
         post = GDO_ForumPost.blank({'post_thread': discussion.get_id(), 'post_creator': cli_gizmore().get_id(),
                                    'post_message_input': 'A post', 'post_message_editor': 'html'}).insert()
         def fresh(board):
-            return GDO_ForumBoard.table().select().where(f'board_id={board.get_id()}').nocache().exec().fetch_object()
+            table = GDO_ForumBoard.table()
+            return table.select_with_stats(table.select()).where(f'board_id={board.get_id()}').nocache().exec().fetch_object()
         root_row, child_row = fresh(root), fresh(child)
         self.assertEqual(0, root_row.gdo_value('num_threads'))
         self.assertEqual(1, child_row.gdo_value('num_threads'))

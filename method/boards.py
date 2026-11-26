@@ -58,11 +58,11 @@ class boards(ForumAccess, MethodQueryTable):
             f'board_id={int(board.get_id())}'
         ).nocache().exec().fetch_assoc()
         if not current:
-            return super().gdo_table_query().where('1=0').nocache()
+            return self.gdo_table().select_with_stats(super().gdo_table_query()).where('1=0').nocache()
         left, right = int(current['board_tree_left']), int(current['board_tree_right'])
         visible = [int(child.get_id()) for child in self.gdo_table().select().nocache().exec()
                    if child.has_permission(GDO_User.current())]
-        return super().gdo_table_query().where(
+        return self.gdo_table().select_with_stats(super().gdo_table_query()).where(
             f'board_tree_left>{left} AND board_tree_right<{right} '
             f'AND NOT EXISTS (SELECT 1 FROM {table} AS ancestor '
             f'WHERE ancestor.board_tree_left>{left} '
