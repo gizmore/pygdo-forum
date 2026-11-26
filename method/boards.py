@@ -1,4 +1,5 @@
 from gdo.base.GDO import GDO
+from gdo.base.Application import Application
 from gdo.base.GDT import GDT
 from gdo.base.Query import Query
 from gdo.base.Render import Mode
@@ -60,8 +61,10 @@ class boards(ForumAccess, MethodQueryTable):
         if not current:
             return self.gdo_table().select_with_stats(super().gdo_table_query()).where('1=0').nocache()
         left, right = int(current['board_tree_left']), int(current['board_tree_right'])
-        visible = [int(child.get_id()) for child in self.gdo_table().select().nocache().exec()
-                   if child.has_permission(GDO_User.current())]
+        all_boards = list(self.gdo_table().select().nocache().exec())
+        self._visible_tree = self.visible_tree(all_boards, GDO_User.current())
+        self._subtree_stats_cache = {}
+        visible = [int(child.get_id()) for child in self._visible_tree]
         return self.gdo_table().select_with_stats(super().gdo_table_query()).where(
             f'board_tree_left>{left} AND board_tree_right<{right} '
             f'AND NOT EXISTS (SELECT 1 FROM {table} AS ancestor '
@@ -79,6 +82,49 @@ class boards(ForumAccess, MethodQueryTable):
 
     def get_board(self) -> GDO_ForumBoard:
         return self.param_value('board')
+
+    @staticmethod
+    def visible_tree(all_boards, user):
+        """Exclude denied boards and their descendants from aggregate statistics."""
+        ordered = sorted(all_boards, key=lambda board: int(board.get_left()))
+        ancestors = []
+        visible = []
+        for board in ordered:
+            left, right = int(board.get_left()), int(board.get_right())
+            while ancestors and left > ancestors[-1][0]:
+                ancestors.pop()
+            allowed = board.has_permission(user) and all(item[1] for item in ancestors)
+            ancestors.append((right, allowed))
+            if allowed:
+                visible.append(board)
+        return visible
+
+    def subtree_stats(self, board):
+        """Return visible descendant thread count, replies and last post."""
+        if not hasattr(self, '_visible_tree'):
+            self._visible_tree = self.visible_tree(list(self.gdo_table().select().nocache().exec()), GDO_User.current())
+            self._subtree_stats_cache = {}
+        board_id = str(board.get_id())
+        if board_id not in self._subtree_stats_cache:
+            current = next((item for item in self._visible_tree if str(item.get_id()) == board_id), None)
+            if current is None:
+                return (0, 0, None)
+            left, right = int(current.get_left()), int(current.get_right())
+            ids = [int(item.get_id()) for item in self._visible_tree
+                   if left <= int(item.get_left()) and int(item.get_right()) <= right]
+            from gdo.forum.GDO_ForumPost import GDO_ForumPost
+            from gdo.forum.GDO_ForumThread import GDO_ForumThread
+            threads = GDO_ForumThread.table().gdo_table_name()
+            posts = GDO_ForumPost.table().gdo_table_name()
+            row = Application.db().select(
+                f'SELECT COUNT(DISTINCT thread.thread_id), COUNT(post.post_id), '
+                f'COUNT(DISTINCT post.post_thread), MAX(post.post_created) '
+                f'FROM {threads} AS thread LEFT JOIN {posts} AS post ON post.post_thread=thread.thread_id '
+                f'WHERE thread.thread_board IN ({",".join(map(str, ids))}) AND thread.thread_deleted IS NULL',
+                False,
+            ).fetch_row()
+            self._subtree_stats_cache[board_id] = (int(row[0] or 0), int(row[1] or 0) - int(row[2] or 0), row[3])
+        return self._subtree_stats_cache[board_id]
 
     def board_actions(self) -> GDT_Menu:
         board = self.get_board()
@@ -113,8 +159,11 @@ class boards(ForumAccess, MethodQueryTable):
         return super().render_gdo(board, mode)
 
     def render_replies(self, replies: GDT_Int, board: GDO_ForumBoard) -> str:
-        return replies.val(str(board.num_replies())).render_html()
+        return replies.val(str(self.subtree_stats(board)[1])).render_html()
+
+    def render_num_threads(self, count: GDT_UInt, board: GDO_ForumBoard) -> str:
+        return count.val(str(self.subtree_stats(board)[0])).render_html()
 
     def render_last_post_date(self, date: GDT_Date, board: GDO_ForumBoard) -> str:
-        last_post = board.gdo_val('last_post_date')
+        last_post = self.subtree_stats(board)[2]
         return render_last_post_time(last_post) if last_post else Render.italic(t('none'), Mode.render_html)

@@ -27,6 +27,6 @@ class LastPostTimeTest(unittest.TestCase):
 
     def test_board_uses_last_post_timestamp(self):
         board = MagicMock()
-        board.gdo_val.return_value = '2026-11-20 18:21:41'
-        with patch('gdo.forum.method.boards.render_last_post_time', return_value='formatted'):
+        with patch.object(boards, 'subtree_stats', return_value=(1, 0, '2026-11-20 18:21:41')), \
+                patch('gdo.forum.method.boards.render_last_post_time', return_value='formatted'):
             self.assertEqual('formatted', boards().render_last_post_date(MagicMock(), board))
